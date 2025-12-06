@@ -1,8 +1,29 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-psycopg2-binary
-pydantic
-celery
-redis
-requests
+# --- Web API (FastAPI + Uvicorn) ---
+fastapi==0.109.2
+uvicorn[standard]==0.27.0.post1
+
+# --- Settings / Config ---
+pydantic==1.10.14
+python-dotenv==1.0.1
+
+# --- DB (PostgreSQL + ORM) ---
+SQLAlchemy==2.0.29
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# --- Async Tasks (Celery + Redis) ---
+celery==5.3.6
+redis==5.0.1
+
+# --- HTTP / 크롤링 / Tor 연동 ---
+requests[socks]==2.32.3
+httpx[socks]==0.27.0
+beautifulsoup4==4.12.3
+lxml==5.2.1
+
+# --- Telegram 알림 ---
+python-telegram-bot==20.8
+
+# --- 유틸 ---
+tenacity==9.0.0       # 재시도 로직용 (크롤링/LLM 호출 등)
+loguru==0.7.2         # 로깅 편하게 쓰고 싶을 때
