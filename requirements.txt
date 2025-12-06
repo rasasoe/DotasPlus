@@ -17,7 +17,7 @@ redis==5.0.1
 
 # --- HTTP / 크롤링 / Tor 연동 ---
 requests[socks]==2.32.3
-httpx[socks]==0.27.0
+httpx[socks]==0.26.0
 beautifulsoup4==4.12.3
 lxml==5.2.1
 
@@ -25,5 +25,5 @@ lxml==5.2.1
 python-telegram-bot==20.8
 
 # --- 유틸 ---
-tenacity==9.0.0       # 재시도 로직용 (크롤링/LLM 호출 등)
-loguru==0.7.2         # 로깅 편하게 쓰고 싶을 때
+tenacity==9.0.0
+loguru==0.7.2
