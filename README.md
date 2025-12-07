@@ -39,15 +39,15 @@
 
 ```mermaid
 graph LR
-    User[Client / Dashboard] -->|REST API| API[FastAPI Server]
-    API -->|Submit Task| Redis[Redis Broker]
-    Redis -->|Dispatch| Worker[Celery Worker]
+    User[Client / Dashboard] --> API[FastAPI Server]
+    API --> Redis[Redis Broker]
+    Redis --> Worker[Celery Worker]
 
     subgraph "Processing Pipeline"
-        Worker -->|1. Crawl| C[Crawler (Tor/HTTP)]
-        Worker -->|2. Normalize| N[Normalizer (Text Clean & IOC Extract)]
-        Worker -->|3. Match| M[Matcher (IOC ↔ Asset DB)]
-        Worker -->|4. Detect| I[Incident Generator]
+        Worker --> C[Crawler]
+        Worker --> N[Normalizer]
+        Worker --> M[Matcher]
+        Worker --> I[Incident Generator]
     end
 
     C --> DB[(PostgreSQL)]
