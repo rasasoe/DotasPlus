@@ -9,7 +9,7 @@
 **DotasPlus**는 다크웹(.onion) 및 OSINT 소스에서 보안 관련 정보를 자동으로 수집, 정규화, 연관 분석하는 **위협 인텔리전스(CTI) 파이프라인**입니다.  
 비정형 데이터를 구조화된 침해지표(IOC)로 변환하고, 조직의 자산(Asset)과 매칭하여 실제 보안 위협(Incident)을 식별합니다.
 
-시스템은 **확장성(Extensibility)**, **모듈화(Modularity)**, **고성능 비동기 처리(Async Processing)**에 중점을 두고 설계되었습니다.
+시스템은 **확장성(Extensibility)**, **모듈화(Modularity)**, 고성능 비동기 처리(Async Processing) 에 중점을 두고 설계되었습니다.
 
 ---
 
