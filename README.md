@@ -1,25 +1,31 @@
-# DotasPlus — Automated Dark-web OSINT Threat Intelligence Engine
+# 🕵️ DotasPlus — Automated Dark-web OSINT Threat Intelligence Engine
 
-![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=flat-square&logo=python)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.95%2B-009688?style=flat-square&logo=fastapi)
-![Celery](https://img.shields.io/badge/Celery-5.3%2B-green?style=flat-square&logo=celery)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker)
-![License](https://img.shields.io/badge/License-MIT-lightgrey?style=flat-square)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-async%20API-009688?logo=fastapi&logoColor=white)
+![Celery](https://img.shields.io/badge/Celery-distributed%20tasks-37814A?logo=celery&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**DotasPlus**는 다크웹(.onion) 및 OSINT 소스에서 보안 관련 정보를 자동으로 수집, 정규화, 연관 분석하는 **위협 인텔리전스(CTI) 파이프라인**입니다.  
-비정형 데이터를 구조화된 침해지표(IOC)로 변환하고, 조직의 자산(Asset)과 매칭하여 실제 보안 위협(Incident)을 식별합니다.
+> **DotasPlus**는 다크웹(.onion) 및 OSINT 소스로부터 보안 관련 정보를 자동 수집·정규화·연관 분석하는  
+> **Threat Intelligence (CTI) 파이프라인**입니다.  
+> 비정형 텍스트를 구조화된 침해지표(IOC)로 변환하고, 조직 자산(Asset)과 매칭하여  
+> **실질적인 Incident(침해 징후)**를 식별합니다.
 
-시스템은 **확장성(Extensibility)**, **모듈화(Modularity)**, **고성능 비동기 처리(Async Processing)** 에 중점을 두고 설계되었습니다.
+시스템은 다음 세 가지에 중점을 두고 설계되었습니다:
+
+- 🔌 **Extensibility** — 크롤러/정규화/분석 모듈 확장성
+- 🧱 **Modularity** — API / Worker / Storage 역할 분리
+- ⚡ **Async Processing** — FastAPI + Celery 기반 고성능 비동기 처리
 
 ---
 
 ## 🎯 Objectives (목표)
 
-- 다크웹 및 OSINT 소스로부터 위협 신호 자동 수집
-- 비정형 콘텐츠 정규화 및 IOC 자동 추출
-- 자산 기반(Asset-centric) 위협 연관 분석
-- 위협 우선순위화 및 실질적 인시던트 식별
-- LLM·샌드박스·대시보드 연동을 고려한 확장 가능한 구조
+- 다크웹 및 OSINT 위협 신호 자동 수집  
+- 비정형 텍스트를 IOC 기반 데이터로 정규화  
+- 자산 중심(Asset-centric) 위협 분석  
+- 노이즈 제거 및 실질 Incident 식별  
+- LLM, 대시보드, 샌드박스 등과 연동 가능한 CTI 플랫폼 기반 구축
 
 ---
 
@@ -27,11 +33,11 @@
 
 | 컴포넌트 | 역할 | 설명 |
 |----------|------|-------------|
-| **FastAPI** | API Gateway | REST API 제공 및 파이프라인 트리거 |
-| **Celery Worker** | Processing Engine | 크롤링, 분석, 매칭 등 비동기 작업 수행 |
-| **Redis** | Message Broker | 태스크 큐 관리 및 분산 실행 |
-| **PostgreSQL** | Storage | 자산, 소스, RawData, Incident 저장 |
-| **Tor Proxy** | Network Layer | .onion 리소스 접근 및 익명성 보장 |
+| **FastAPI** | API Gateway | REST API, 파이프라인 트리거 |
+| **Celery Worker** | Processing Engine | Crawling, Parsing, Matching, Incident 생성 |
+| **Redis** | Message Broker | 태스크 큐 관리 |
+| **PostgreSQL** | Storage | 자산/소스/RawDocument/Incident 저장 |
+| **Tor Proxy** | Network Layer | .onion 익명 접근 지원 |
 
 ---
 
@@ -39,15 +45,15 @@
 
 ```mermaid
 graph LR
-    User[Client / Dashboard] --> API[FastAPI Server]
-    API --> Redis[Redis Broker]
-    Redis --> Worker[Celery Worker]
+    User[Client / Dashboard] -->|REST API| API[FastAPI Server]
+    API -->|Submit Task| Redis[Redis Broker]
+    Redis -->|Dispatch| Worker[Celery Worker]
 
     subgraph "Processing Pipeline"
-        Worker --> C[Crawler]
-        Worker --> N[Normalizer]
-        Worker --> M[Matcher]
-        Worker --> I[Incident Generator]
+        Worker -->|1. Crawl| C[Crawler (Tor/HTTP)]
+        Worker -->|2. Normalize| N[Normalizer (Text Clean & IOC Extract)]
+        Worker -->|3. Match| M[Matcher (IOC ↔ Asset DB)]
+        Worker -->|4. Detect| I[Incident Generator]
     end
 
     C --> DB[(PostgreSQL)]
@@ -60,46 +66,82 @@ graph LR
 
 ## ⚙️ Core Pipeline (핵심 파이프라인)
 
-### 1. Crawling Layer (수집 계층)
-- Tor(SOCKS5h) 기반 dark-web 크롤링 지원  
-- Raw HTML + 메타데이터를 그대로 아카이빙  
-- 다중 소스 비동기 병렬 처리
+### 1. Crawling Layer
+- Tor(SOCKS5h) 기반 다크웹 접근
+- 원본 HTML + 메타데이터 아카이빙
+- 비동기 병렬 크롤링
 
-### 2. Normalization Layer (정규화 계층)
-- HTML 제거 및 본문 텍스트 추출  
-- Regex 기반 IOC 자동 추출  
-  - IPv4, Domain, URL, Email, Crypto Wallet  
-- LLM 기반 Semantic Parsing 확장 가능 구조
+### 2. Normalization Layer
+- HTML 제거 및 본문 추출
+- Regex 기반 IOC 자동 추출 (IP, Domain, URL, Email, Crypto Wallet 등)
+- LLM 기반 Semantic Parsing 연동 가능
 
-### 3. Asset Matching Layer (자산 매칭 계층)
-- IOC ↔ 조직 자산 연관성 분석  
-- Non-actionable 데이터 필터링  
-- Severity 등급 기반 Incident 자동 생성
+### 3. Asset Matching Layer
+- IOC ↔ 자산 연관성 분석
+- Noise 제거 / FP 최소화
+- 심각도 기반 Incident 자동 생성
 
 ---
 
-## 📂 Project Structure (프로젝트 구조)
+## 🗄 Data Model (Logical ERD)
 
+```text
+┌──────────┐        ┌───────────┐        ┌─────────────┐
+│  Asset   │1      *│   IOC     │*      1│  Incident   │
+│──────────│--------│───────────│--------│─────────────│
+│ id       │        │ id        │        │ id          │
+│ name     │        │ ioc_type  │        │ title       │
+│ type     │        │ value     │        │ severity    │
+│ identifier        │ source_id │        │ created_at  │
+└──────────┘        │ asset_id  │        │ status      │
+                    └───────────┘        └─────────────┘
+                          ^
+                          │
+                    ┌─────────────┐
+                    │ RawDocument │
+                    │─────────────│
+                    │ id          │
+                    │ source_id   │
+                    │ url         │
+                    │ raw_html    │
+                    │ fetched_at  │
+                    └─────────────┘
+
+┌──────────┐
+│ Source   │
+│──────────│
+│ id       │
+│ name     │
+│ url      │
+│ type     │
+│ use_tor  │
+└──────────┘
 ```
+
+---
+
+## 📁 Project Structure
+
+```text
 DotasPlus/
 ├── app/
-│   ├── main.py               # FastAPI Entrypoint
-│   ├── models.py             # SQLAlchemy ORM Models
-│   ├── tasks.py              # Celery Pipeline Logic
-│   ├── api/                  # REST API Routes
-│   ├── config.py             # Environment Settings
-│   └── database.py           # DB Session Manager
-├── docker-compose.yml        # Infrastructure Orchestration
-├── Dockerfile                # Application Image Build
-├── requirements.txt          # Python Dependencies
-└── .env.example              # Environment Variables Template
+│   ├── main.py
+│   ├── models.py
+│   ├── tasks.py
+│   ├── api/
+│   ├── config.py
+│   └── database.py
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
+└── .env.example
 ```
 
 ---
 
-## 🔍 API Specification (API 명세)
+## 🔌 API Specification
 
-### Register Asset
+### ● Register Asset
 ```http
 POST /api/v1/assets
 {
@@ -109,7 +151,7 @@ POST /api/v1/assets
 }
 ```
 
-### Register Source
+### ● Register Source
 ```http
 POST /api/v1/sources
 {
@@ -120,52 +162,55 @@ POST /api/v1/sources
 }
 ```
 
-### Trigger Crawling
+### ● Trigger Crawling
 ```http
 POST /api/v1/sources/{id}/run_crawl
 ```
 
 ---
 
-## 🧪 Getting Started (시작하기)
+## 🚀 Getting Started
 
 ```bash
-# 1. Repository Clone
-git clone https://github.com/rasasoe/DotasPlus
+git clone https://github.com/rasasoe/DotasPlus.git
 cd DotasPlus
 
-# 2. 환경 변수 설정 (.env.example 참고)
+# (선택) 환경 변수 설정
+cp .env.example .env
 
-# 3. Docker 실행
-docker-compose down -v
+# 서비스 실행
 docker-compose up --build -d
 ```
 
-API 문서 확인:  
-👉 http://localhost:8000/docs
+Swagger 문서:
+```
+http://localhost:8000/docs
+```
 
 ---
 
-## 📈 Technical Advantages (기술적 장점)
+## 🛡 Security & Legal Notice
 
-- 모듈형 아키텍처로 기능 추가/수정 용이  
-- 고성능 비동기 기반 파이프라인  
-- 자산 중심 위협 분석으로 실무 적용성 높음  
-- LLM 및 Sandbox 통합 확장 가능  
-- API / Worker / Storage 계층 간 역할 완전 분리
+> ⚠️ 이 프로젝트는 **보안 연구 및 방어 목적**으로 설계되었습니다.  
+> 불법적 사용 또는 비인가 시스템 접근은 금지됩니다.
 
----
-
-## 🗺 Roadmap (로드맵)
-
-- [x] 다크웹/OSINT 비동기 크롤링
-- [x] IOC 추출 + 자산 매칭
-- [ ] LLM 기반 문맥 분석 모듈
-- [ ] React 기반 위협 대시보드
-- [ ] Slack/Telegram 알림 시스템
-- [ ] Multi-Worker 분산 확장
+- Tor 기반 접근은 국가별 법률을 반드시 확인해야 함  
+- 본 프로젝트는 연구·학습·방어용이며 사용 책임은 사용자에게 있음  
+- 악성 데이터 취급 시 별도 샌드박스 환경 사용 권장  
 
 ---
 
-## 📄 License
+## 🛣 Roadmap
+
+- [x] 비동기 크롤링 파이프라인 구축  
+- [x] IOC 추출 + 자산 매칭  
+- [ ] LLM 기반 문맥 분석  
+- [ ] React 대시보드  
+- [ ] Slack/Telegram 알림  
+- [ ] Multi-worker 확장  
+- [ ] 샌드박스 분석 연동  
+
+---
+
+## 📜 License
 MIT License
