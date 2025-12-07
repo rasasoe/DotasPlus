@@ -50,7 +50,7 @@ graph LR
     Redis -->|Dispatch| Worker[Celery Worker]
 
     subgraph "Processing Pipeline"
-        Worker -->|1. Crawl| C[Crawler (Tor-HTTP)]
+        Worker -->|1. Crawl| Crawler["Crawler (Tor&#47;HTTP)"]
         Worker -->|2. Normalize| N[Normalizer (Text Clean & IOC Extract)]
         Worker -->|3. Match| M[Matcher (IOC ↔ Asset DB)]
         Worker -->|4. Detect| I[Incident Generator]
