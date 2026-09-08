@@ -5,6 +5,7 @@ celery_app = Celery(
     "dotas_plus",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
+    include=["app.tasks"],
 )
 
 celery_app.conf.task_routes = {

@@ -1,50 +1,103 @@
-import re
+from __future__ import annotations
+
+import hashlib
+from urllib.parse import urlsplit
+
 import requests
 from celery import shared_task
 from sqlalchemy.orm import Session
 
-from app.celery_app import celery_app  # noqa: F401
-from app.database import SessionLocal
-from app.models import Source, RawDocument, Asset, Incident
 from app.config import settings
-
-
-URL_REGEX = re.compile(r"https?://[^\s\"']+")
-IP_REGEX = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b")
-EMAIL_REGEX = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+from app.database import SessionLocal
+from app.intelligence import extract_indicators
+from app.models import Incident, RawDocument, Source
+from app.pipeline import create_incidents, persist_iocs
 
 
 def _get_db() -> Session:
     return SessionLocal()
 
 
+def _request_options(source: Source) -> dict:
+    parsed = urlsplit(source.url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise RuntimeError("Source URL must use http or https and include a host.")
+
+    is_onion = parsed.hostname.lower().endswith(".onion")
+    if is_onion and not source.use_tor:
+        raise RuntimeError("Onion source requires use_tor=true; refusing direct request.")
+
+    hostname = parsed.hostname.lower()
+    allowed = any(
+        hostname == item or hostname.endswith(f".{item}")
+        for item in settings.SOURCE_HOST_ALLOWLIST
+    )
+    if not allowed:
+        raise RuntimeError(
+            f"Source host {hostname!r} is not present in SOURCE_HOST_ALLOWLIST."
+        )
+
+    options = {
+        "timeout": 15,
+        "allow_redirects": False,
+        "headers": {"User-Agent": "DotasPlus/0.2 defensive-cti"},
+    }
+    if source.use_tor:
+        proxy = (settings.TOR_PROXY_URL or "").strip()
+        if not proxy:
+            raise RuntimeError(
+                "Source requires Tor, but TOR_PROXY_URL is not configured; refusing direct request."
+            )
+        if not proxy.lower().startswith("socks5h://"):
+            raise RuntimeError("TOR_PROXY_URL must use the socks5h:// scheme.")
+        options["proxies"] = {"http": proxy, "https": proxy}
+    return options
+
+
 @shared_task(name="app.tasks.crawl_source")
 def crawl_source(source_id: int) -> str:
     db = _get_db()
     try:
-        src: Source | None = db.query(Source).filter(Source.id == source_id).first()
-        if not src:
+        source = db.query(Source).filter(Source.id == source_id).first()
+        if not source:
             return f"Source {source_id} not found"
+        if not source.is_active:
+            return f"Source {source_id} is inactive"
 
-        resp = requests.get(src.url, timeout=10)
-        resp.raise_for_status()
-
-        raw = RawDocument(
-            source_id=src.id,
-            url=src.url,
-            body_raw=resp.text,
-            status="fetched",
-            metadata={"http_status": resp.status_code},
+        response = requests.get(source.url, **_request_options(source))
+        if response.is_redirect:
+            raise RuntimeError(
+                "Source redirect refused; review and allowlist the destination explicitly."
+            )
+        response.raise_for_status()
+        content_hash = hashlib.sha256(response.content).hexdigest()
+        existing = (
+            db.query(RawDocument)
+            .filter(
+                RawDocument.source_id == source.id,
+                RawDocument.content_hash == content_hash,
+            )
+            .first()
         )
-        db.add(raw)
-        db.commit()
-        db.refresh(raw)
+        if existing:
+            return f"Duplicate content skipped: raw_document_id={existing.id}"
 
-        normalize_document.delay(raw.id)
-        return f"Fetched {src.url} → raw_document_id={raw.id}"
-    except Exception as e:
+        document = RawDocument(
+            source_id=source.id,
+            url=source.url,
+            body_raw=response.text,
+            content_hash=content_hash,
+            status="fetched",
+            meta={"http_status": response.status_code},
+        )
+        db.add(document)
+        db.commit()
+        db.refresh(document)
+        normalize_document.delay(document.id)
+        return f"Fetched source_id={source.id} -> raw_document_id={document.id}"
+    except Exception:
         db.rollback()
-        return f"Error in crawl_source({source_id}): {e}"
+        raise
     finally:
         db.close()
 
@@ -53,118 +106,44 @@ def crawl_source(source_id: int) -> str:
 def normalize_document(raw_document_id: int) -> str:
     db = _get_db()
     try:
-        doc: RawDocument | None = (
-            db.query(RawDocument).filter(RawDocument.id == raw_document_id).first()
-        )
-        if not doc:
+        document = db.query(RawDocument).filter(RawDocument.id == raw_document_id).first()
+        if not document:
             return f"RawDocument {raw_document_id} not found"
 
-        html = doc.body_raw or ""
-        text = re.sub(r"<[^>]+>", " ", html)
-        text = re.sub(r"\s+", " ", text).strip()
-
-        urls = URL_REGEX.findall(text)
-        ips = IP_REGEX.findall(text)
-        emails = EMAIL_REGEX.findall(text)
-
-        doc.body_text = text
-        doc.status = "normalized"
-        meta = doc.metadata or {}
-        meta["ioc_candidates"] = {
-            "urls": urls,
-            "ips": ips,
-            "emails": emails,
+        body_text, indicators = extract_indicators(document.body_raw)
+        document.body_text = body_text
+        document.status = "normalized"
+        document.meta = {
+            **(document.meta or {}),
+            "indicator_count": len(indicators),
         }
-        doc.metadata = meta
-
+        created = persist_iocs(db, document, indicators)
         db.commit()
-
-        match_incident.delay(raw_document_id)
-        return (
-            f"Normalized raw_document_id={raw_document_id} "
-            f"(urls={len(urls)}, ips={len(ips)}, emails={len(emails)})"
-        )
-    except Exception as e:
+        match_incident.delay(document.id)
+        return f"Normalized raw_document_id={document.id}; new_iocs={len(created)}"
+    except Exception:
         db.rollback()
-        return f"Error in normalize_document({raw_document_id}): {e}"
+        raise
     finally:
         db.close()
-
-
-def _find_matching_assets(db: Session, doc: RawDocument):
-    text = (doc.body_text or "").lower()
-    meta = doc.metadata or {}
-    candidates = meta.get("ioc_candidates", {}) or {}
-    urls = [u.lower() for u in candidates.get("urls", [])]
-    emails = [e.lower() for e in candidates.get("emails", [])]
-    ips = [ip.lower() for ip in candidates.get("ips", [])]
-
-    all_strings = [text] + urls + emails + ips
-
-    assets = db.query(Asset).all()
-    matches: list[dict] = []
-
-    for asset in assets:
-        ident = (asset.identifier or "").lower()
-        if not ident:
-            continue
-        if any(ident in s for s in all_strings):
-            matches.append(
-                {
-                    "asset_id": asset.id,
-                    "name": asset.name,
-                    "type": asset.type,
-                    "identifier": asset.identifier,
-                    "criticality": asset.criticality,
-                }
-            )
-
-    return matches
 
 
 @shared_task(name="app.tasks.match_incident")
 def match_incident(raw_document_id: int) -> str:
     db = _get_db()
     try:
-        doc: RawDocument | None = (
-            db.query(RawDocument).filter(RawDocument.id == raw_document_id).first()
-        )
-        if not doc:
+        document = db.query(RawDocument).filter(RawDocument.id == raw_document_id).first()
+        if not document:
             return f"RawDocument {raw_document_id} not found"
-
-        matches = _find_matching_assets(db, doc)
-        if not matches:
-            return f"No matching assets for raw_document_id={raw_document_id}"
-
-        max_crit = max(m["criticality"] for m in matches)
-        asset_names = ", ".join({m["name"] for m in matches})
-
-        title = f"[AUTO] Possible leak related to: {asset_names}"
-        description = (
-            f"Raw document (id={doc.id}) from source_id={doc.source_id} "
-            f"contains indicators mentioning registered assets."
-        )
-
-        incident = Incident(
-            title=title,
-            description=description,
-            severity=max_crit,
-            source_type="osint",
-            extra={
-                "raw_document_id": doc.id,
-                "matched_assets": matches,
-                "url": doc.url,
-            },
-        )
-        db.add(incident)
+        incidents = create_incidents(db, document)
+        document.status = "matched"
         db.commit()
-        db.refresh(incident)
-
-        send_alert.delay(incident.id)
-        return f"Incident {incident.id} created from raw_document_id={raw_document_id}"
-    except Exception as e:
+        for incident in incidents:
+            send_alert.delay(incident.id)
+        return f"Matched raw_document_id={document.id}; new_incidents={len(incidents)}"
+    except Exception:
         db.rollback()
-        return f"Error in match_incident({raw_document_id}): {e}"
+        raise
     finally:
         db.close()
 
@@ -173,53 +152,30 @@ def match_incident(raw_document_id: int) -> str:
 def send_alert(incident_id: int) -> str:
     db = _get_db()
     try:
-        incident: Incident | None = (
-            db.query(Incident).filter(Incident.id == incident_id).first()
-        )
+        incident = db.query(Incident).filter(Incident.id == incident_id).first()
         if not incident:
             return f"Incident {incident_id} not found"
 
-        title = incident.title
-        sev = incident.severity
-        src_type = incident.source_type
-        extra = incident.extra or {}
-
-        msg_lines = [
-            "🚨 [DOTAS++ Lite] New Incident Detected",
-            "",
-            f"ID: {incident.id}",
-            f"Title: {title}",
-            f"Severity: {sev}",
-            f"Source: {src_type}",
-        ]
-        if "url" in extra:
-            msg_lines.append(f"Source URL: {extra['url']}")
-        if "matched_assets" in extra:
-            assets_str = ", ".join(
-                f"{a['name']}({a['identifier']})"
-                for a in extra["matched_assets"]
-            )
-            msg_lines.append(f"Assets: {assets_str}")
-
-        message = "\n".join(msg_lines)
-
+        message = "\n".join(
+            [
+                "[DotasPlus] New CTI incident",
+                f"ID: {incident.id}",
+                f"Title: {incident.title}",
+                f"Severity: {incident.severity}/5",
+                f"Source: {incident.source_type}",
+            ]
+        )
         if settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_CHAT_ID:
-            try:
-                api_url = (
-                    f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
-                )
-                payload = {
-                    "chat_id": settings.TELEGRAM_CHAT_ID,
-                    "text": message,
-                }
-                resp = requests.post(api_url, json=payload, timeout=10)
-                resp.raise_for_status()
-                return f"Alert sent to Telegram for incident_id={incident_id}"
-            except Exception as e:
-                print(f"[ALERT][FALLBACK] {message}")
-                return f"Telegram error for incident_id={incident_id}: {e}"
-        else:
-            print(f"[ALERT] {message}")
-            return f"Alert logged to console for incident_id={incident_id}"
+            url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+            response = requests.post(
+                url,
+                json={"chat_id": settings.TELEGRAM_CHAT_ID, "text": message},
+                timeout=10,
+            )
+            response.raise_for_status()
+            return f"Alert sent for incident_id={incident.id}"
+
+        print(message)
+        return f"Alert logged for incident_id={incident.id}"
     finally:
         db.close()

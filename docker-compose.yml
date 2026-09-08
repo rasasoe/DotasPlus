@@ -1,13 +1,10 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
-    container_name: dotas_db
     environment:
-      - POSTGRES_USER=dotas
-      - POSTGRES_PASSWORD=dotas_secret
-      - POSTGRES_DB=dotas_core
+      POSTGRES_USER: dotas
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dotas_dev_only}
+      POSTGRES_DB: dotas_core
     ports:
       - "5432:5432"
     volumes:
@@ -15,9 +12,15 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: dotas_redis
     ports:
       - "6379:6379"
+
+  fixture:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./fixtures:/usr/share/nginx/html:ro
+    ports:
+      - "8088:80"
 
   web:
     build: .
@@ -29,10 +32,15 @@ services:
     depends_on:
       - db
       - redis
-    environment:
-      - DATABASE_URL=postgresql://dotas:dotas_secret@db:5432/dotas_core
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - fixture
+    environment: &app_environment
+      DATABASE_URL: postgresql://dotas:${POSTGRES_PASSWORD:-dotas_dev_only}@db:5432/dotas_core
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      TOR_PROXY_URL: ${TOR_PROXY_URL:-}
+      SOURCE_HOST_ALLOWLIST: ${SOURCE_HOST_ALLOWLIST:-fixture,localhost,127.0.0.1}
 
   worker:
     build: .
@@ -42,10 +50,7 @@ services:
     depends_on:
       - db
       - redis
-    environment:
-      - DATABASE_URL=postgresql://dotas:dotas_secret@db:5432/dotas_core
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    environment: *app_environment
 
 volumes:
   postgres_data:
