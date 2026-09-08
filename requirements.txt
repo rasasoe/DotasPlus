@@ -1,29 +1,9 @@
-# --- Web API (FastAPI + Uvicorn) ---
 fastapi==0.109.2
 uvicorn[standard]==0.27.0.post1
-
-# --- Settings / Config ---
-pydantic==1.10.14
+pydantic==2.13.4
 python-dotenv==1.0.1
-
-# --- DB (PostgreSQL + ORM) ---
 SQLAlchemy==2.0.29
 psycopg2-binary==2.9.9
-alembic==1.13.1
-
-# --- Async Tasks (Celery + Redis) ---
 celery==5.3.6
 redis==5.0.1
-
-# --- HTTP / 크롤링 / Tor 연동 ---
 requests[socks]==2.32.3
-httpx[socks]==0.26.0
-beautifulsoup4==4.12.3
-lxml==5.2.1
-
-# --- Telegram 알림 ---
-python-telegram-bot==20.8
-
-# --- 유틸 ---
-tenacity==9.0.0
-loguru==0.7.2

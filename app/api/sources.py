@@ -1,88 +1,55 @@
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Source
 from app.tasks import crawl_source
 
-router = APIRouter(prefix="/api/v1/sources", tags=["Sources"])
 
-# -------------------------------
-# Pydantic Schemas
-# -------------------------------
+router = APIRouter(prefix="/sources", tags=["sources"])
+
+
 class SourceCreate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str
-    type: str          # "darkweb", "osint", "leak_site" 등
+    source_type: str = Field(alias="type")
     url: str
-    use_tor: bool = False   # 기본값 False (일반 웹)
+    use_tor: bool = False
 
+class SourceRead(SourceCreate):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
-class SourceRead(BaseModel):
     id: int
-    name: str
-    type: str
-    url: str
-    use_tor: bool
-
-    class Config:
-        from_attributes = True   # pydantic v2 (v1이라면 orm_mode = True)
+    is_active: bool
 
 
-# -------------------------------
-# Create Source
-# -------------------------------
-@router.post(
-    "/", 
-    summary="Register new source", 
-    response_model=SourceRead
-)
-def create_source(
-    src: SourceCreate,
-    db: Session = Depends(get_db),
-):
-    new_src = Source(
-        name=src.name,
-        type=src.type,
-        url=src.url,
+@router.post("", response_model=SourceRead, status_code=status.HTTP_201_CREATED)
+def create_source(src: SourceCreate, db: Session = Depends(get_db)):
+    source = Source(
+        name=src.name.strip(),
+        source_type=src.source_type.strip().lower(),
+        url=src.url.strip(),
         use_tor=src.use_tor,
     )
-    db.add(new_src)
+    db.add(source)
     db.commit()
-    db.refresh(new_src)
-    return new_src
+    db.refresh(source)
+    return source
 
 
-# -------------------------------
-# List Sources
-# -------------------------------
-@router.get(
-    "/", 
-    summary="List Sources", 
-    response_model=list[SourceRead]
-)
-def list_sources(
-    db: Session = Depends(get_db),
-):
-    return db.query(Source).all()
+@router.get("", response_model=list[SourceRead])
+def list_sources(db: Session = Depends(get_db)):
+    return db.query(Source).order_by(Source.id).all()
 
 
-# -------------------------------
-# Trigger Crawl
-# -------------------------------
-@router.post("/{source_id}/run_crawl", summary="Start crawling this source (async)")
-def run_crawl(
-    source_id: int,
-    db: Session = Depends(get_db),
-):
-    src = db.query(Source).filter(Source.id == source_id).first()
-    if not src:
-        raise HTTPException(404, "Source not found")
-
-    # Celery async task 실행
+@router.post("/{source_id}/crawl", status_code=status.HTTP_202_ACCEPTED)
+def run_crawl(source_id: int, db: Session = Depends(get_db)):
+    source = db.query(Source).filter(Source.id == source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+    if not source.is_active:
+        raise HTTPException(status_code=409, detail="Source is inactive")
     task = crawl_source.delay(source_id)
-
-    return {
-        "message": "Crawl task accepted",
-        "task_id": task.id,
-    }
+    return {"source_id": source_id, "task_id": task.id, "status": "scheduled"}
