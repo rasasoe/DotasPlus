@@ -9,6 +9,13 @@
 
 DotasPlus는 수집량 자체보다 **출처 → 원문 → IOC → 보호 자산 → Incident**의 추적 가능한 흐름을 구현하는 데 초점을 둡니다. 기본 실행은 일반 HTTP와 로컬 fixture를 대상으로 하며, Tor 경로는 별도 SOCKS5h 프록시가 명시된 경우에만 사용합니다.
 
+## 기여와 검증 근거
+
+- **변경 근거:** [PR #2](https://github.com/rasasoe/DotasPlus/pull/2/files)에서 ORM/API/task 계약 통일, IOC·Incident 영속화와 중복 방지, 수집 범위 통제, Finding export를 정리했습니다.
+- **재검증:** 2026-09-16 단위 테스트 **9개 통과**. 로컬 HTML·SQLite fixture 기반 IOC 추출·자산 매칭·중복 방지와 수집 경계를 확인했습니다.
+- **검증하지 않은 범위:** 실제 PostgreSQL·Redis·Celery worker를 연결한 Docker Compose 종단 간 실행과 외부 위협 소스 수집은 이번 검증에 포함하지 않았습니다.
+- **해석 한계:** IOC 일치는 조사 신호이며 침해 확정이나 탐지 정확도 수치가 아닙니다.
+
 ## 보안 포트폴리오에서의 역할
 
 | 프로젝트 | 관찰 대상 | 역할 |
@@ -72,7 +79,7 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-기존 개발 DB가 이전 스키마로 만들어진 경우에만 로컬 볼륨을 초기화합니다.
+아래 초기화는 **폐기 가능한 로컬 실습 DB에만** 사용합니다. `down -v`는 볼륨의 기존 데이터를 삭제하므로, 보존할 데이터가 있으면 백업·마이그레이션을 먼저 수행하고 실행하지 마세요.
 
 ```bash
 docker compose down -v
