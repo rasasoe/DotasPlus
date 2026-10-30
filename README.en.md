@@ -2,7 +2,7 @@
 
 <div align="center">
   <p><a href="README.md">🇰🇷 한국어</a> · <strong>🇺🇸 English</strong></p>
-  <p>![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white) ![Celery](https://img.shields.io/badge/Celery-37814A) ![CTI](https://img.shields.io/badge/Focus-Defensive_CTI-2EA44F)</p>
+  <p><img alt="Python" src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white"/> <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white"/> <img alt="Celery" src="https://img.shields.io/badge/Celery-37814A"/> <img alt="CTI" src="https://img.shields.io/badge/Focus-Defensive_CTI-2EA44F"/></p>
 </div>
 
 ---
