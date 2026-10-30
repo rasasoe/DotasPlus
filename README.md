@@ -1,5 +1,8 @@
 # DotasPlus
 
+<p align="center"><b>🌐 Language</b> &nbsp; <strong>🇰🇷 한국어</strong> &nbsp; | &nbsp; <a href="README.en.md">🇺🇸 English</a></p>
+
+
 > 외부 위협 소스에서 문서를 수집하고 IOC를 정규화한 뒤, 보호 자산과의 연관성을 Incident로 만드는 CTI 파이프라인 프로토타입
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
