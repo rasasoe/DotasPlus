@@ -1,10 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="310" viewBox="0 0 1200 310" role="img" aria-labelledby="title desc">
-<title id="title">DotasPlus — portfolio</title><desc id="desc">SECURITY / THREAT INTELLIGENCE. DOCUMENT / IOC / ASSET / INCIDENT.</desc>
-<rect width="1200" height="310" fill="#111111"/>
-<g font-family="Georgia,'Times New Roman',serif">
-<text x="56" y="44" fill="#B7B4AE" font-size="15" letter-spacing="2">RASASOE / SECURITY / THREAT INTELLIGENCE</text>
-<text x="56" y="193" fill="#F4F1EA" font-weight="600" font-size="100" letter-spacing="1.3">DotasPlus</text>
-<path d="M56 228H1144" stroke="#605D57" stroke-width="1"/>
-<text x="56" y="265" fill="#B7B4AE" font-size="18" letter-spacing="1.3">DOCUMENT / IOC / ASSET / INCIDENT</text>
-</g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 310" width="1200" height="310"><title>DotasPlus</title><rect width="1200" height="310" fill="#101010"/><g font-family="Georgia,'Times New Roman',serif"><text x="56" y="43" font-size="15" letter-spacing="2" fill="#B7B4AE">RASASOE / SECURITY / THREAT INTELLIGENCE</text><text x="56" y="190" font-size="100" font-weight="600" fill="#F4F1EA">DotasPlus</text><path d="M56 228H1144" stroke="#68635E"/><text x="56" y="266" font-size="18" letter-spacing="1" fill="#B7B4AE">DOCUMENT / IOC / ASSET / INCIDENT</text></g></svg>
