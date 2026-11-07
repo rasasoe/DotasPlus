@@ -1,24 +1,30 @@
-<p align="center"><img src="assets/portfolio-banner.svg" width="100%" alt="DotasPlus — project overview"></p>
+<picture>
+  <source media="(max-width: 600px)" srcset="assets/portfolio-banner-mobile.svg">
+  <img src="assets/portfolio-banner.svg" width="100%" alt="DotasPlus — evidence-linked threat intelligence">
+</picture>
 
-# DotasPlus — Cyber Threat Intelligence Pipeline
+<p align="right"><a href="README.md">한국어</a> / <strong>English</strong></p>
 
-<div align="center">
-  <p><a href="README.md">🇰🇷 한국어</a> · <strong>🇺🇸 English</strong></p>
-  
-</div>
+# DotasPlus — Threat Intelligence Pipeline
+
+**Python · IOC normalization · Asset matching · Incident tracking**  
+**Documented development/test activity:** December 2025–September 2026
+
+## Why build it?
+
+Extracting an IOC is not enough: a useful security workflow must connect **a source document, an indicator, a protected asset and the resulting incident**. This prototype explores traceability rather than maximizing raw collection volume.
+
+## Implemented workflow
+
+1. **Acquire and normalize:** Parse a local source document and extract indicators
+2. **Relate to assets:** Match indicators to registered protected assets and suppress duplicates
+3. **Preserve evidence:** Record source context and output structured findings/incident references
+
+**Evidence:** Nine local HTML/SQLite fixture tests passed. End-to-end live external collection and a full PostgreSQL/Redis/Celery deployment have not been verified.
+
+[Earlier DOTAS work](https://github.com/rasasoe/DarkWeb_Alarm) · [Developer profile](https://github.com/rasasoe)
 
 ---
-
-> A prototype pipeline that connects the **source of a threat report → document → normalized IOC → protected asset → incident**.
-
-## Validation question and timeline
-
-**Documented work and verification activity:** December 2025–September 2026 (not a verified full development period).
-
-Rather than maximizing collected feeds, the objective was to verify **traceability from source document → normalized indicator → protected asset → deduplicated incident**.
-
-- **Evidence:** Nine local HTML/SQLite fixture tests covering IOC extraction, asset matching, incident deduplication, and source-scope enforcement.
-- **Not verified:** End-to-end external collection with PostgreSQL, Redis, and Celery workers. An IOC match is an investigation signal, not proof of compromise.
 
 ## Architecture
 
