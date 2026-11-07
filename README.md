@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/portfolio-banner.svg" width="100%" alt="DotasPlus — project overview"></p>
+
 # DotasPlus
 
 <p align="center"><b>🌐 Language</b> &nbsp; <strong>🇰🇷 한국어</strong> &nbsp; | &nbsp; <a href="README.en.md">🇺🇸 English</a></p>
@@ -5,10 +7,6 @@
 
 > 외부 위협 소스에서 문서를 수집하고 IOC를 정규화한 뒤, 보호 자산과의 연관성을 Incident로 만드는 CTI 파이프라인 프로토타입
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Celery](https://img.shields.io/badge/Celery-Task_Pipeline-37814A?logo=celery&logoColor=white)](https://docs.celeryq.dev/)
-[![Scope](https://img.shields.io/badge/Scope-Defensive_CTI-2EA44F)](#안전-경계)
 
 DotasPlus는 수집량 자체보다 **출처 → 원문 → IOC → 보호 자산 → Incident**의 추적 가능한 흐름을 구현하는 데 초점을 둡니다. 기본 실행은 일반 HTTP와 로컬 fixture를 대상으로 하며, Tor 경로는 별도 SOCKS5h 프록시가 명시된 경우에만 사용합니다.
 
