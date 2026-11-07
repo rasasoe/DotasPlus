@@ -9,6 +9,15 @@
 
 > A prototype pipeline that connects the **source of a threat report → document → normalized IOC → protected asset → incident**.
 
+## Validation question and timeline
+
+**Documented work and verification activity:** December 2025–September 2026 (not a verified full development period).
+
+Rather than maximizing collected feeds, the objective was to verify **traceability from source document → normalized indicator → protected asset → deduplicated incident**.
+
+- **Evidence:** Nine local HTML/SQLite fixture tests covering IOC extraction, asset matching, incident deduplication, and source-scope enforcement.
+- **Not verified:** End-to-end external collection with PostgreSQL, Redis, and Celery workers. An IOC match is an investigation signal, not proof of compromise.
+
 ## Architecture
 
 ```mermaid
