@@ -12,6 +12,15 @@
 
 DotasPlus는 수집량 자체보다 **출처 → 원문 → IOC → 보호 자산 → Incident**의 추적 가능한 흐름을 구현하는 데 초점을 둡니다. 기본 실행은 일반 HTTP와 로컬 fixture를 대상으로 하며, Tor 경로는 별도 SOCKS5h 프록시가 명시된 경우에만 사용합니다.
 
+## 검증하려 했던 문제
+
+**확인된 작업·검증 기록:** 2025.12–2026.09 (프로젝트 착수·종료 기간과 구분)
+
+위협 정보를 많이 수집하는 것보다 **어떤 원문에서 나온 IOC인지, 어느 보호 자산과 연관되며 어떤 Incident가 만들어졌는지**를 일관되게 추적하는 것이 목표였습니다.
+
+- **확인된 근거:** 로컬 HTML·SQLite fixture에서 IOC 추출, 자산 연결, Incident 중복 방지, 수집 범위 경계에 대한 단위 테스트 9개 통과
+- **미검증:** 실제 외부 소스 및 PostgreSQL·Redis·Celery를 연결한 전체 종단 간 파이프라인. IOC 일치만으로 실제 침해를 확정하지 않습니다.
+
 ## 기여와 검증 근거
 
 - **변경 근거:** [PR #2](https://github.com/rasasoe/DotasPlus/pull/2/files)에서 ORM/API/task 계약 통일, IOC·Incident 영속화와 중복 방지, 수집 범위 통제, Finding export를 정리했습니다.
