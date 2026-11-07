@@ -1,23 +1,30 @@
-<p align="center"><img src="assets/portfolio-banner.svg" width="100%" alt="DotasPlus — project overview"></p>
+<picture>
+  <source media="(max-width: 600px)" srcset="assets/portfolio-banner-mobile.svg">
+  <img src="assets/portfolio-banner.svg" width="100%" alt="DotasPlus — 위협 정보와 보호 자산의 연결">
+</picture>
 
-# DotasPlus
+<p align="right"><strong>한국어</strong> / <a href="README.en.md">English</a></p>
 
-<p align="center"><b>🌐 Language</b> &nbsp; <strong>🇰🇷 한국어</strong> &nbsp; | &nbsp; <a href="README.en.md">🇺🇸 English</a></p>
+# DotasPlus — 위협 인텔리전스 분석 흐름
 
+**Threat Intelligence · Python · IOC · Incident**  
+**확인된 개발·테스트 활동:** 2025.12–2026.09
 
-> 외부 위협 소스에서 문서를 수집하고 IOC를 정규화한 뒤, 보호 자산과의 연관성을 Incident로 만드는 CTI 파이프라인 프로토타입
+## 왜 만들었나
 
+위협 정보에서 이메일이나 도메인을 추출하는 것만으로는 **그 정보가 우리 자산과 어떤 관계인지** 판단하기 어렵습니다. DotasPlus는 **수집 원문 → IOC → 보호 자산 → Incident**가 추적 가능한지 확인하려고 만든 CTI 파이프라인 프로토타입입니다.
 
-DotasPlus는 수집량 자체보다 **출처 → 원문 → IOC → 보호 자산 → Incident**의 추적 가능한 흐름을 구현하는 데 초점을 둡니다. 기본 실행은 일반 HTTP와 로컬 fixture를 대상으로 하며, Tor 경로는 별도 SOCKS5h 프록시가 명시된 경우에만 사용합니다.
+## 구현한 과정
 
-## 검증하려 했던 문제
+1. **문서 수집과 정규화:** 로컬 HTML 등 입력 소스에서 IOC 후보 추출
+2. **자산 연관성 판단:** 등록된 보호 자산에 IOC를 연결하고 기록 중복 방지
+3. **결과 기록:** 원문 출처와 탐지 근거를 남기고 Incident 및 공통 Finding으로 출력
 
-**확인된 작업·검증 기록:** 2025.12–2026.09 (프로젝트 착수·종료 기간과 구분)
+**실제 확인:** 로컬 HTML·SQLite fixture 기반 테스트 9개 통과. 외부 Tor 소스나 PostgreSQL·Redis·Celery를 모두 연동한 실환경 종단 간 운영 성과를 주장하지 않습니다.
 
-위협 정보를 많이 수집하는 것보다 **어떤 원문에서 나온 IOC인지, 어느 보호 자산과 연관되며 어떤 Incident가 만들어졌는지**를 일관되게 추적하는 것이 목표였습니다.
+[초기 DOTAS 프로젝트](https://github.com/rasasoe/DarkWeb_Alarm) · [프로필](https://github.com/rasasoe)
 
-- **확인된 근거:** 로컬 HTML·SQLite fixture에서 IOC 추출, 자산 연결, Incident 중복 방지, 수집 범위 경계에 대한 단위 테스트 9개 통과
-- **미검증:** 실제 외부 소스 및 PostgreSQL·Redis·Celery를 연결한 전체 종단 간 파이프라인. IOC 일치만으로 실제 침해를 확정하지 않습니다.
+---
 
 ## 기여와 검증 근거
 
